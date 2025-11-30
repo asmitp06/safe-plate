@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Safe-Plate Scout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-green-600 mb-2">🥗 Safe-Plate Scout</h1>
+            <p class="text-gray-600">Your Forensic Dietary Concierge AI</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <form action="/search" method="post" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Location</label>
+                        <input type="text" name="location" required placeholder="e.g. Edison, NJ" 
+                               value="{{ location if location else '' }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Dietary Profile</label>
+                        <input type="text" name="profile" required placeholder="e.g. Vegan, No Nuts" 
+                               value="{{ profile if profile else '' }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">What are you looking for?</label>
+                    <input type="text" name="query" required placeholder="e.g. Ramen, Marshmallows" 
+                           value="{{ query if query else '' }}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition">
+                    <i class="fas fa-search mr-2"></i> Scout for Food
+                </button>
+            </form>
+        </div>
+
+        {% if results %}
+        <div class="space-y-6">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0"><i class="fas fa-robot text-blue-500"></i></div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">Step 1: Intent Detected</h3>
+                        <p class="text-sm text-blue-700 mt-1">{{ results.step_1_intent }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-yellow-500">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-list-check text-yellow-500 mr-2"></i> Vetting Report
+                </h2>
+                <div class="prose max-w-none text-gray-800 whitespace-pre-line">
+                    {{ results.step_2_vetting }}
+                </div>
+            </div>
+
+            <div class="bg-gray-900 text-white rounded-lg shadow-md p-6 border-t-4 border-green-500">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-gavel text-green-400 mr-2"></i> Auditor Verdict
+                </h2>
+                <div class="prose max-w-none text-gray-300 whitespace-pre-line">
+                    {{ results.step_3_audit }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
