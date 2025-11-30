@@ -106,50 +106,80 @@
         </div>
 
         {% if results %}
-        <div class="space-y-8 animate-fade-in-up">
-            
-            <div class="flex items-center gap-5 p-5 rounded-2xl bg-white/60 border border-white shadow-sm backdrop-blur-sm">
-                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl shadow-inner">
-                    <i class="fas fa-route"></i>
-                </div>
-                <div>
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Step 1: Routing</h3>
-                    <p class="text-xl text-slate-800 font-bold tracking-tight">{{ results.step_1_intent }}</p>
-                </div>
+<div class="space-y-8">
+    
+    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0"><i class="fas fa-compass text-indigo-500 text-xl"></i></div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-indigo-800">Mission Type</h3>
+                <p class="text-lg font-bold text-indigo-900">{{ results.intent }} SCOUTING</p>
             </div>
-
-            <div class="glass-card rounded-3xl shadow-lg border border-white overflow-hidden relative">
-                <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-400"></div>
-                <div class="p-8">
-                    <div class="flex items-center gap-3 mb-6">
-                        <span class="bg-amber-100 text-amber-700 p-2 rounded-lg"><i class="fas fa-microscope"></i></span>
-                        <h2 class="text-2xl font-bold text-slate-800">Forensic Analysis</h2>
-                    </div>
-                    <div class="prose prose-slate max-w-none leading-relaxed text-slate-600 whitespace-pre-line">
-                        {{ results.step_2_vetting }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-900 rounded-3xl shadow-2xl shadow-slate-900/40 overflow-hidden border border-slate-700 relative group">
-                <div class="absolute -inset-1 bg-gradient-to-r from-green-600 to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                
-                <div class="relative bg-slate-900 p-8 h-full rounded-3xl">
-                    <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-green-400 text-2xl"><i class="fas fa-gavel"></i></span>
-                            <h2 class="text-2xl font-bold text-white">Safety Verdict</h2>
-                        </div>
-                        <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-mono font-bold border border-green-500/30">VERIFIED</span>
-                    </div>
-                    <div class="prose prose-invert max-w-none text-slate-300 font-mono text-sm leading-relaxed whitespace-pre-line">
-                        {{ results.step_3_audit }}
-                    </div>
-                </div>
-            </div>
-
         </div>
-        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for item in results.recommendations %}
+        <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col">
+            
+            <div class="p-5 border-b border-gray-100 bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-xl font-bold text-gray-800">{{ item.name }}</h3>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                        {% if item.safety_score > 80 %} bg-green-100 text-green-800 
+                        {% elif item.safety_score > 50 %} bg-yellow-100 text-yellow-800 
+                        {% else %} bg-red-100 text-red-800 {% endif %}">
+                        {{ item.safety_score }}% Safe
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1"><i class="fas fa-map-marker-alt mr-1"></i> {{ item.address }}</p>
+            </div>
+
+            <div class="p-5 flex-1">
+                <div class="mb-4">
+                    <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Safe Menu / Recipes</h4>
+                    <ul class="space-y-1">
+                        {% for dish in item.safe_items %}
+                        <li class="flex items-start text-sm text-gray-700">
+                            <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                            {{ dish }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <p class="text-sm text-gray-600 italic bg-gray-50 p-3 rounded">
+                    "{{ item.reasoning }}"
+                </p>
+            </div>
+
+            <div class="p-5 border-t border-gray-100 bg-gray-50">
+                {% if item.website_url %}
+                <a href="{{ item.website_url }}" target="_blank" 
+                   class="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    <i class="fas fa-external-link-alt mr-2"></i> Visit Website / Menu
+                </a>
+                {% else %}
+                <button disabled class="block w-full text-center bg-gray-300 text-white font-bold py-2 px-4 rounded-lg cursor-not-allowed">
+                    No Link Available
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="bg-gray-900 text-white rounded-xl shadow-lg p-6 border-l-4 border-green-400">
+        <h2 class="text-lg font-bold mb-2 flex items-center">
+            <i class="fas fa-user-shield text-green-400 mr-2"></i> Auditor's Final Verdict
+        </h2>
+        <div class="prose prose-invert max-w-none text-gray-300 text-sm">
+            {{ results.audit }}
+        </div>
+    </div>
+
+</div>
+{% endif %}
         
         <div class="text-center mt-16 pb-8">
             <p class="text-slate-400 text-sm font-medium">Built for Google AI Agents Intensive 2025</p>
