@@ -6,69 +6,101 @@
     <title>Safe-Plate Scout | Dietary Concierge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+        
+        /* THE INTERESTING BACKGROUND */
+        .animated-bg {
+            /* A mesh gradient of Lime, Emerald, Cyan, and White */
+            background: linear-gradient(-45deg, #f0fdf4, #dcfce7, #ccfbf1, #ecfccb);
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
         }
-        /* Custom scrollbar for result boxes */
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glassmorphism for Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85); /* Mostly opaque white */
+            backdrop-filter: blur(12px);           /* Blurs what's behind it */
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* Custom scrollbar */
         .prose::-webkit-scrollbar { width: 6px; }
         .prose::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        /* Floating Icon Animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating-icon { animation: float 4s ease-in-out infinite; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen text-slate-800">
+<body class="animated-bg min-h-screen text-slate-800 selection:bg-green-200">
+
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    </div>
 
     <div class="container mx-auto px-4 py-12 max-w-3xl">
         
-        <div class="text-center mb-10">
-            <div class="inline-block p-3 rounded-full bg-green-100 text-green-600 mb-4 shadow-sm">
-                <i class="fas fa-shield-alt text-2xl"></i>
+        <div class="text-center mb-12">
+            <div class="floating-icon inline-flex items-center justify-center p-4 rounded-3xl bg-gradient-to-tr from-green-400 to-emerald-600 text-white mb-6 shadow-lg shadow-green-500/30 transform rotate-3">
+                <i class="fas fa-shield-alt text-3xl"></i>
             </div>
-            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-3">
-                Safe-Plate <span class="text-green-600">Scout</span>
+            <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-4 drop-shadow-sm">
+                Safe-Plate <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500">Scout</span>
             </h1>
-            <p class="text-lg text-slate-600 font-medium">Where Safe Meets Tasty.</p>
+            <p class="text-xl text-slate-600 font-medium">Where Safe Meets Tasty.</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl shadow-green-900/5 p-8 mb-10 border border-white/50">
-            <form action="/search" method="post" class="space-y-6">
+        <div class="glass-card rounded-3xl shadow-xl shadow-slate-200/50 p-8 mb-12 transition-all hover:shadow-2xl hover:shadow-green-900/10">
+            <form action="/search" method="post" class="space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Location</label>
-                        <div class="relative">
-                            <i class="fas fa-map-marker-alt absolute left-3 top-3.5 text-gray-400"></i>
+                    <div class="space-y-2 group">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Location</label>
+                        <div class="relative transition-transform group-focus-within:scale-[1.02] duration-200">
+                            <i class="fas fa-location-dot absolute left-4 top-4 text-green-500 text-lg"></i>
                             <input type="text" name="location" required placeholder="e.g. Edison, NJ" 
                                    value="{{ location if location else '' }}"
-                                   class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all bg-gray-50 focus:bg-white">
+                                   class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/80 border border-slate-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all shadow-sm">
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Dietary Profile</label>
-                        <div class="relative">
-                            <i class="fas fa-user-check absolute left-3 top-3.5 text-gray-400"></i>
-                            <input type="text" name="profile" required placeholder="e.g. Vegan, No Nuts" 
+                    <div class="space-y-2 group">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Dietary Profile</label>
+                        <div class="relative transition-transform group-focus-within:scale-[1.02] duration-200">
+                            <i class="fas fa-id-card absolute left-4 top-4 text-green-500 text-lg"></i>
+                            <input type="text" name="profile" required placeholder="e.g. Vegetarian + Eggs" 
                                    value="{{ profile if profile else '' }}"
-                                   class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all bg-gray-50 focus:bg-white">
+                                   class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/80 border border-slate-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all shadow-sm">
                         </div>
                     </div>
                 </div>
                 
-                <div class="space-y-2">
-                    <label class="text-sm font-semibold text-slate-600 uppercase tracking-wider">What are you looking for?</label>
-                    <div class="relative">
-                        <i class="fas fa-utensils absolute left-3 top-3.5 text-gray-400"></i>
-                        <input type="text" name="query" required placeholder="e.g. Ramen, Marshmallows" 
+                <div class="space-y-2 group">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Mission</label>
+                    <div class="relative transition-transform group-focus-within:scale-[1.01] duration-200">
+                        <i class="fas fa-magnifying-glass absolute left-4 top-4 text-green-500 text-lg"></i>
+                        <input type="text" name="query" required placeholder="e.g. Find ramen OR buy marshmallows" 
                                value="{{ query if query else '' }}"
-                               class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all bg-gray-50 focus:bg-white">
+                               class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/80 border border-slate-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all shadow-sm">
                     </div>
                 </div>
 
-                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-green-600/30 transform transition hover:-translate-y-0.5 active:translate-y-0 duration-200 flex justify-center items-center gap-2">
-                    <i class="fas fa-search"></i> 
-                    <span>Scout for Food</span>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-xl shadow-slate-900/20 transform transition hover:-translate-y-1 active:translate-y-0 duration-200 flex justify-center items-center gap-3">
+                    <span>Scout For Food</span>
+                    <i class="fas fa-arrow-right"></i>
                 </button>
             </form>
         </div>
@@ -76,54 +108,62 @@
         {% if results %}
         <div class="space-y-8 animate-fade-in-up">
             
-            <div class="flex items-start gap-4 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-                <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
-                    <i class="fas fa-compass text-xl"></i>
+            <div class="flex items-center gap-5 p-5 rounded-2xl bg-white/60 border border-white shadow-sm backdrop-blur-sm">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl shadow-inner">
+                    <i class="fas fa-route"></i>
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide">Intent Detected</h3>
-                    <p class="text-blue-800 font-medium mt-1">{{ results.step_1_intent }}</p>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Step 1: Routing</h3>
+                    <p class="text-xl text-slate-800 font-bold tracking-tight">{{ results.step_1_intent }}</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-                <div class="bg-amber-50 px-6 py-4 border-b border-amber-100 flex items-center gap-3">
-                    <i class="fas fa-clipboard-check text-amber-600 text-xl"></i>
-                    <h2 class="text-lg font-bold text-amber-900">Forensic Vetting Report</h2>
-                </div>
-                <div class="p-6 prose max-w-none text-slate-700 leading-relaxed whitespace-pre-line">
-                    {{ results.step_2_vetting }}
+            <div class="glass-card rounded-3xl shadow-lg border border-white overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-400"></div>
+                <div class="p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="bg-amber-100 text-amber-700 p-2 rounded-lg"><i class="fas fa-microscope"></i></span>
+                        <h2 class="text-2xl font-bold text-slate-800">Forensic Analysis</h2>
+                    </div>
+                    <div class="prose prose-slate max-w-none leading-relaxed text-slate-600 whitespace-pre-line">
+                        {{ results.step_2_vetting }}
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-700 relative">
-                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-500 rounded-full blur-3xl opacity-20"></div>
+            <div class="bg-slate-900 rounded-3xl shadow-2xl shadow-slate-900/40 overflow-hidden border border-slate-700 relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-green-600 to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                 
-                <div class="bg-slate-800/50 px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-                    <i class="fas fa-shield-halved text-green-400 text-xl"></i>
-                    <h2 class="text-lg font-bold text-green-50">Auditor Verdict</h2>
-                </div>
-                <div class="p-6 prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-line font-mono text-sm">
-                    {{ results.step_3_audit }}
+                <div class="relative bg-slate-900 p-8 h-full rounded-3xl">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-green-400 text-2xl"><i class="fas fa-gavel"></i></span>
+                            <h2 class="text-2xl font-bold text-white">Safety Verdict</h2>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-mono font-bold border border-green-500/30">VERIFIED</span>
+                    </div>
+                    <div class="prose prose-invert max-w-none text-slate-300 font-mono text-sm leading-relaxed whitespace-pre-line">
+                        {{ results.step_3_audit }}
+                    </div>
                 </div>
             </div>
 
         </div>
         {% endif %}
         
-        <div class="text-center mt-12 text-slate-400 text-sm">
-            <p>© 2025 Safe-Plate Scout. Powered by Google Gemini.</p>
+        <div class="text-center mt-16 pb-8">
+            <p class="text-slate-400 text-sm font-medium">Built for Google AI Agents Intensive 2025</p>
         </div>
 
     </div>
 
     <style>
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(40px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out forwards;
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </body>
