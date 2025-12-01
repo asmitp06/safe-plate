@@ -1,10 +1,16 @@
 import os
 import json
+from dotenv import load_dotenv # Import the loader
 from google import genai
 from google.genai import types
 from google.adk.agents import LlmAgent
 
+# [LOAD ENV]
+# This looks for a .env file and loads it into os.environ
+load_dotenv() 
+
 # CONFIGURATION
+# Now this will successfully find the key from your .env file
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
 FAST_MODEL = "gemini-2.0-flash" 
@@ -52,11 +58,11 @@ auditor_schema = {
 # HELPER FUNCTION
 def query_agent_with_runner(agent, prompt, tools=None, json_mode=False, schema=None):
     if not os.environ.get("GOOGLE_API_KEY"):
-        return "⚠️ Error: GOOGLE_API_KEY not set."
+        return "⚠️ Error: GOOGLE_API_KEY not set. Check your .env file."
 
     config_args = {
         "tools": tools,
-        "temperature": 0.2, # Low temperature ensures CONSISTENT ratings
+        "temperature": 0.2, 
         "safety_settings": [
             types.SafetySetting(
                 category="HARM_CATEGORY_DANGEROUS_CONTENT",

@@ -4,3 +4,4 @@ google-genai
 google-adk
 python-multipart
 jinja2
+python-dotenv
