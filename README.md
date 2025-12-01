@@ -1,4 +1,4 @@
-# 🥗 Safe-Plate Scout: The Forensic Dietary Concierge
+# 🥗 Safe-Plate Scout: The Place to Find Safe, Tasty Food
 
 **Capstone Submission for Google AI Agents Intensive 2025**
 **Track:** Concierge Agents
