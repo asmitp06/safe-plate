@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe-Plate Scout | Dietary Concierge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* THE INTERESTING BACKGROUND */
+        .animated-bg {
+            /* A mesh gradient of Lime, Emerald, Cyan, and White */
+            background: linear-gradient(-45deg, #f0fdf4, #dcfce7, #ccfbf1, #ecfccb);
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glassmorphism for Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85); /* Mostly opaque white */
+            backdrop-filter: blur(12px);           /* Blurs what's behind it */
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* Custom scrollbar */
+        .prose::-webkit-scrollbar { width: 6px; }
+        .prose::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        /* Floating Icon Animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating-icon { animation: float 4s ease-in-out infinite; }
+
+        /* Blob Animation */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        
+        /* Fade In Animation for Results */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="animated-bg min-h-screen text-slate-800 selection:bg-green-200">
+
+    <!-- Background Blobs -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div class="container mx-auto px-4 py-12 max-w-4xl">
+        
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <div class="floating-icon inline-flex items-center justify-center p-4 rounded-3xl bg-gradient-to-tr from-green-400 to-emerald-600 text-white mb-6 shadow-lg shadow-green-500/30 transform rotate-3">
+                <i class="fas fa-shield-alt text-3xl"></i>
+            </div>
+            <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-4 drop-shadow-sm">
+                Safe-Plate <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500">Scout</span>
+            </h1>
+            <p class="text-xl text-slate-600 font-medium">Where Safe Meets Tasty.</p>
+        </div>
+
+        <!-- Search Form -->
+        <div class="glass-card rounded-3xl shadow-xl shadow-slate-200/50 p-8 mb-12 transition-all hover:shadow-2xl hover:shadow-green-900/10">
+            <form action="/search" method="post" class="space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2 group">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Location</label>
+                        <div class="relative transition-transform group-focus-within:scale-[1.02] duration-200">
+                            <i class="fas fa-location-dot absolute left-4 top-4 text-green-500 text-lg"></i>
+                            <input type="text" name="location" required placeholder="e.g. Edison, NJ" 
+                                   value="{{ location if location else '' }}"
+                                   class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/80 border border-slate-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all shadow-sm">
+                        </div>
+                    </div>
+                    <div class="space-y-2 group">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Dietary Profile</label>
+                        <div class="relative transition-transform group-focus-within:scale-[1.02] duration-200">
+                            <i class="fas fa-id-card absolute left-4 top-4 text-green-500 text-lg"></i>
+                            <input type="text" name="profile" required placeholder="e.g. Vegetarian + Eggs" 
+                                   value="{{ profile if profile else '' }}"
+                                   class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/80 border border-slate-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all shadow-sm">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2 group">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Mission</label>
+                    <div class="relative transition-transform group-focus-within:scale-[1.01] duration-200">
+                        <i class="fas fa-magnifying-glass absolute left-4 top-4 text-green-500 text-lg"></i>
+                        <input type="text" name="query" required placeholder="e.g. Find ramen OR buy marshmallows" 
+                               value="{{ query if query else '' }}"
+                               class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/80 border border-slate-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all shadow-sm">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-xl shadow-slate-900/20 transform transition hover:-translate-y-1 active:translate-y-0 duration-200 flex justify-center items-center gap-3">
+                    <span>Scout For Food</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+
+        {% if results %}
+        <div class="space-y-8 animate-fade-in-up">
+            
+            <!-- Intent Banner -->
+            <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0"><i class="fas fa-compass text-indigo-500 text-xl"></i></div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-indigo-800">Mission Type</h3>
+                        <p class="text-lg font-bold text-indigo-900">{{ results.intent }} SCOUTING</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for item in results.recommendations %}
+                <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col">
+                    
+                    <!-- Card Header -->
+                    <div class="p-5 border-b border-gray-100 bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-xl font-bold text-gray-800">{{ item.name }}</h3>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if item.safety_score > 80 %} bg-green-100 text-green-800 
+                                {% elif item.safety_score > 50 %} bg-yellow-100 text-yellow-800 
+                                {% else %} bg-red-100 text-red-800 {% endif %}">
+                                {{ item.safety_score }}% Safe
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1"><i class="fas fa-map-marker-alt mr-1"></i> {{ item.address }}</p>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="p-5 flex-1">
+                        <div class="mb-4">
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Safe Menu / Recipes</h4>
+                            <ul class="space-y-1">
+                                {% for dish in item.safe_items %}
+                                <li class="flex items-start text-sm text-gray-700">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                                    {{ dish }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 italic bg-gray-50 p-3 rounded">
+                            "{{ item.reasoning }}"
+                        </p>
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="p-5 border-t border-gray-100 bg-gray-50">
+                        {% if item.website_url %}
+                        <a href="{{ item.website_url }}" target="_blank" 
+                           class="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                            <i class="fas fa-external-link-alt mr-2"></i> Visit Website / Menu
+                        </a>
+                        {% else %}
+                        <button disabled class="block w-full text-center bg-gray-300 text-white font-bold py-2 px-4 rounded-lg cursor-not-allowed">
+                            No Link Available
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Auditor Verdict (New Structured Scorecard) -->
+            <div class="bg-gray-900 rounded-xl shadow-xl overflow-hidden mt-8">
+                <div class="flex flex-col md:flex-row">
+                    <!-- Left Side: The Score -->
+                    <div class="bg-gray-800 p-8 flex flex-col items-center justify-center md:w-1/3 border-b md:border-b-0 md:border-r border-gray-700">
+                        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-2">Safety Confidence</h3>
+                        <div class="relative w-32 h-32 flex items-center justify-center rounded-full border-4 
+                            {% if results.audit.overall_score >= 80 %} border-green-500 text-green-400
+                            {% elif results.audit.overall_score >= 50 %} border-yellow-500 text-yellow-400
+                            {% else %} border-red-500 text-red-400 {% endif %}">
+                            <span class="text-4xl font-bold">{{ results.audit.overall_score }}%</span>
+                        </div>
+                        <p class="mt-4 text-xl font-bold text-white text-center">
+                            {{ results.audit.headline }}
+                        </p>
+                    </div>
+
+                    <!-- Right Side: The Breakdown -->
+                    <div class="p-8 md:w-2/3 bg-gray-900">
+                        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-4">
+                            <i class="fas fa-clipboard-check mr-2"></i> Auditor's Notes
+                        </h3>
+                        <ul class="space-y-4">
+                            {% for note in results.audit.summary_notes %}
+                            <li class="flex items-start">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="fas fa-check-circle text-gray-500"></i>
+                                </div>
+                                <p class="ml-4 text-lg text-gray-300 leading-relaxed">
+                                    {{ note }}
+                                </p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        {% endif %}
+        
+        <div class="text-center mt-16 pb-8">
+            <p class="text-slate-400 text-sm font-medium">Built for Google AI Agents Intensive 2025</p>
+        </div>
+
+    </div>
+</body>
+</html>
