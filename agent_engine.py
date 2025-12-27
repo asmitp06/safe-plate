@@ -10,11 +10,11 @@ from google.adk.agents import LlmAgent
 # [LOAD ENV]
 load_dotenv() 
 
-# CONFIGURATION - USING CORRECT MODEL NAMES FOR API v1beta
+# CONFIGURATION - Using gemini-2.0-flash-exp with proper path
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-FAST_MODEL = "gemini-1.5-flash-latest"  # Correct model name for v1beta API
-SMART_MODEL = "gemini-1.5-flash-latest"  # Correct model name for v1beta API
+FAST_MODEL = "models/gemini-2.0-flash-exp"  # Experimental 2.0 model
+SMART_MODEL = "models/gemini-2.0-flash-exp"  # Experimental 2.0 model
 
 # [CACHING SYSTEM]
 # Simple in-memory cache with 1-hour expiration
