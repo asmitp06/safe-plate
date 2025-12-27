@@ -10,11 +10,11 @@ from google.adk.agents import LlmAgent
 # [LOAD ENV]
 load_dotenv() 
 
-# CONFIGURATION - SWITCHED TO 1.5-FLASH FOR DIFFERENT QUOTA POOL
+# CONFIGURATION - USING CORRECT MODEL NAMES FOR API v1beta
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-FAST_MODEL = "gemini-1.5-flash"  # Changed from 2.0-flash
-SMART_MODEL = "gemini-1.5-flash"  # Changed from 2.0-flash
+FAST_MODEL = "gemini-1.5-flash-latest"  # Correct model name for v1beta API
+SMART_MODEL = "gemini-1.5-flash-latest"  # Correct model name for v1beta API
 
 # [CACHING SYSTEM]
 # Simple in-memory cache with 1-hour expiration
