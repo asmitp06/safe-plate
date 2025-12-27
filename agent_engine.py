@@ -133,7 +133,7 @@ combined_agent = LlmAgent(
 # HELPER FUNCTION
 def query_agent_with_runner(agent, prompt, tools=None, json_mode=False, schema=None):
     if not os.environ.get("GOOGLE_API_KEY"):
-        return "⚠️ Error: GOOGLE_API_KEY not set. Check your .env file."
+        return None, "⚠️ Error: GOOGLE_API_KEY not set. Check your .env file."
 
     config_args = {
         "tools": tools,
@@ -160,10 +160,14 @@ def query_agent_with_runner(agent, prompt, tools=None, json_mode=False, schema=N
             config=generate_config
         )
         if not response.text:
-            return "{}"
-        return response.text
+            return None, "Empty response from API"
+        return response.text, None
     except Exception as e:
-        return f"⚠️ Agent Error: {str(e)}"
+        error_msg = str(e)
+        # Check if it's a quota error
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            return None, f"⚠️ API Quota Exceeded: {error_msg}"
+        return None, f"⚠️ API Error: {error_msg}"
 
 # MAIN ORCHESTRATOR WITH CACHING
 def process_user_request(user_query, user_profile, location):
@@ -176,10 +180,14 @@ def process_user_request(user_query, user_profile, location):
         return cached_result
     
     # Default result structure
-    results = {
-        "intent": "",
+    default_results = {
+        "intent": "RESTAURANT",
         "recommendations": [], 
-        "audit": {} 
+        "audit": {
+            "overall_score": 0,
+            "headline": "Processing Error",
+            "summary_notes": ["Unable to process request. Please try again."]
+        }
     }
 
     # Single unified prompt that handles everything
@@ -213,7 +221,7 @@ def process_user_request(user_query, user_profile, location):
     """
     
     # ONE API CALL instead of three
-    raw_json = query_agent_with_runner(
+    raw_json, error = query_agent_with_runner(
         combined_agent, 
         unified_prompt, 
         tools=[search_tool], 
@@ -221,30 +229,54 @@ def process_user_request(user_query, user_profile, location):
         schema=combined_schema
     )
     
+    # Handle API errors
+    if error:
+        default_results["audit"]["summary_notes"] = [error]
+        return default_results
+    
+    # Handle empty response
+    if not raw_json or raw_json.strip() == "":
+        default_results["audit"]["summary_notes"] = ["Received empty response from API. Please try again."]
+        return default_results
+    
+    # Try to parse JSON
     try:
         results = json.loads(raw_json)
-        # Ensure all required fields exist
+        
+        # Validate and ensure all required fields exist
+        if not isinstance(results, dict):
+            return default_results
+            
         if "intent" not in results:
             results["intent"] = "RESTAURANT"
-        if "recommendations" not in results:
+        if "recommendations" not in results or not isinstance(results["recommendations"], list):
             results["recommendations"] = []
-        if "audit" not in results:
+        if "audit" not in results or not isinstance(results["audit"], dict):
             results["audit"] = {
                 "overall_score": 0,
-                "headline": "Processing Error",
-                "summary_notes": ["Unable to generate safety audit."]
+                "headline": "Incomplete Response",
+                "summary_notes": ["System returned incomplete data."]
             }
+        
+        # Validate audit structure
+        if "overall_score" not in results["audit"]:
+            results["audit"]["overall_score"] = 0
+        if "headline" not in results["audit"]:
+            results["audit"]["headline"] = "Unknown Status"
+        if "summary_notes" not in results["audit"] or not isinstance(results["audit"]["summary_notes"], list):
+            results["audit"]["summary_notes"] = ["No audit notes available."]
+            
+    except json.JSONDecodeError as e:
+        # JSON parsing failed
+        default_results["audit"]["summary_notes"] = [
+            f"Failed to parse API response: {str(e)}",
+            f"Raw response preview: {raw_json[:100]}..."
+        ]
+        return default_results
     except Exception as e:
-        # Fallback for parsing errors
-        results = {
-            "intent": "RESTAURANT",
-            "recommendations": [],
-            "audit": {
-                "overall_score": 0,
-                "headline": "System Error",
-                "summary_notes": [f"Error processing request: {str(e)}"]
-            }
-        }
+        # Any other error
+        default_results["audit"]["summary_notes"] = [f"Unexpected error: {str(e)}"]
+        return default_results
     
     # Save to cache before returning
     save_to_cache(cache_key, results)
