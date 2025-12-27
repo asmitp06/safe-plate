@@ -1,59 +1,134 @@
 import os
 import json
-from dotenv import load_dotenv # Import the loader
+import hashlib
+import time
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from google.adk.agents import LlmAgent
 
 # [LOAD ENV]
-# This looks for a .env file and loads it into os.environ
 load_dotenv() 
 
 # CONFIGURATION
-# Now this will successfully find the key from your .env file
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
 FAST_MODEL = "gemini-2.0-flash" 
 SMART_MODEL = "gemini-2.0-flash"
+
+# [CACHING SYSTEM]
+# Simple in-memory cache with 1-hour expiration
+CACHE = {}
+CACHE_EXPIRY = 3600  # 1 hour in seconds
+
+def get_cache_key(user_query, user_profile, location):
+    """Generate a unique cache key based on query parameters."""
+    combined = f"{user_query.lower().strip()}|{user_profile.lower().strip()}|{location.lower().strip()}"
+    return hashlib.md5(combined.encode()).hexdigest()
+
+def get_from_cache(cache_key):
+    """Retrieve cached result if it exists and hasn't expired."""
+    if cache_key in CACHE:
+        cached_data, timestamp = CACHE[cache_key]
+        if time.time() - timestamp < CACHE_EXPIRY:
+            return cached_data
+        else:
+            # Remove expired cache entry
+            del CACHE[cache_key]
+    return None
+
+def save_to_cache(cache_key, data):
+    """Save result to cache with current timestamp."""
+    CACHE[cache_key] = (data, time.time())
 
 # [TOOL DEFINITION]
 search_tool = types.Tool(
     google_search=types.GoogleSearch()
 )
 
-# [SCHEMAS]
-rec_schema = {
-    "type": "ARRAY",
-    "items": {
-        "type": "OBJECT",
-        "properties": {
-            "name": {"type": "STRING"},
-            "address": {"type": "STRING"},
-            "website_url": {"type": "STRING"},
-            "safe_items": {
-                "type": "ARRAY",
-                "items": {"type": "STRING"},
-                "description": "Specific dishes or products that match the diet"
-            },
-            "safety_score": {"type": "INTEGER", "description": "0-100"},
-            "reasoning": {"type": "STRING"}
-        },
-        "required": ["name", "safe_items", "reasoning"]
-    }
-}
-
-auditor_schema = {
+# [COMBINED SCHEMA] - Includes both recommendations AND audit in one response
+combined_schema = {
     "type": "OBJECT",
     "properties": {
-        "overall_score": {"type": "INTEGER", "description": "0-100 Confidence Score"},
-        "headline": {"type": "STRING", "description": "Short, punchy verdict (e.g. 'Green Light', 'Proceed with Caution')"},
-        "summary_notes": {
-            "type": "ARRAY", 
-            "items": {"type": "STRING"},
-            "description": "3-4 short bullet points explaining the risk or safety."
+        "intent": {
+            "type": "STRING",
+            "description": "Either RESTAURANT or GROCERY"
+        },
+        "recommendations": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "name": {"type": "STRING"},
+                    "address": {"type": "STRING"},
+                    "website_url": {"type": "STRING"},
+                    "safe_items": {
+                        "type": "ARRAY",
+                        "items": {"type": "STRING"},
+                        "description": "Specific dishes or products that match the diet"
+                    },
+                    "safety_score": {"type": "INTEGER", "description": "0-100"},
+                    "reasoning": {"type": "STRING"}
+                },
+                "required": ["name", "safe_items", "reasoning"]
+            }
+        },
+        "audit": {
+            "type": "OBJECT",
+            "properties": {
+                "overall_score": {"type": "INTEGER", "description": "0-100 Confidence Score"},
+                "headline": {"type": "STRING", "description": "Short, punchy verdict (e.g. 'Green Light', 'Proceed with Caution')"},
+                "summary_notes": {
+                    "type": "ARRAY", 
+                    "items": {"type": "STRING"},
+                    "description": "3-4 short bullet points explaining the risk or safety."
+                }
+            },
+            "required": ["overall_score", "headline", "summary_notes"]
         }
-    }
+    },
+    "required": ["intent", "recommendations", "audit"]
 }
+
+# [COMBINED AGENT] - Does routing, vetting, AND auditing in ONE call
+combined_agent = LlmAgent(
+    name="unified_safety_agent",
+    model=SMART_MODEL,
+    description="Handles intent classification, recommendations, and safety audit.",
+    instruction="""
+    You are a comprehensive dietary safety assistant that performs three tasks in one:
+    
+    TASK 1: INTENT CLASSIFICATION
+    - Determine if the query is about RESTAURANT or GROCERY
+    
+    TASK 2: RECOMMENDATIONS (based on intent)
+    
+    FOR RESTAURANTS:
+    1. SEARCH GOAL: Find 6 valid options within the specified location.
+    2. LOCATION CHECK: Only include results from the requested city.
+    3. SCORING RUBRIC (EVIDENCE-BASED):
+       - 95-100 (HIGH SAFETY): Mentions "Dedicated Gluten Free Menu", "Dedicated Kitchen", OR explicitly lists "Gluten Free Food Options".
+       - 80-94 (MODERATE): Mentions "Gluten Friendly" items or modifications but lacks strong "Gluten Free" label.
+       - <80 (LOW): No clear safe options found.
+    4. EVIDENCE: Extract and quote exact phrases that justify each score.
+    
+    FOR GROCERY:
+    1. Search for specific safe brands/products available in local stores.
+    2. SCORING RUBRIC:
+       - 95-100: Package states "Certified Gluten Free" or "Certified Allergen Free".
+       - 85-94: Product claims "Gluten Free" or "No [Allergen]" (not certified).
+       - <85: May contain traces / Unsafe.
+    3. EVIDENCE: Quote the label or ingredient claim.
+    
+    TASK 3: SAFETY AUDIT
+    - Review your own recommendations
+    - Assign overall Safety Confidence Score (0-100)
+    - Write short Headline (e.g., "Safe to Eat", "High Risk", "Mixed Bag")
+    - Provide 3-4 crisp bullet points explaining safety or risks
+    
+    Output all three tasks in the required JSON format.
+    """
+)
 
 # HELPER FUNCTION
 def query_agent_with_runner(agent, prompt, tools=None, json_mode=False, schema=None):
@@ -85,134 +160,93 @@ def query_agent_with_runner(agent, prompt, tools=None, json_mode=False, schema=N
             config=generate_config
         )
         if not response.text:
-            return "[]" if json_mode and schema == rec_schema else "{}"
+            return "{}"
         return response.text
     except Exception as e:
         return f"⚠️ Agent Error: {str(e)}"
 
-# AGENT DEFINITIONS
-router_agent = LlmAgent(
-    name="intent_router",
-    model=FAST_MODEL,
-    description="Classifies user intent.",
-    instruction="Determine if query is RESTAURANT or GROCERY. Output one word."
-)
-
-restaurant_vetter = LlmAgent(
-    name="restaurant_vetter",
-    model=FAST_MODEL,
-    description="Finds and checks restaurants.",
-    instruction="""
-    You are a dietary safety officer. 
-    1. SEARCH GOAL: Find enough valid options to fill a list of 6.
-    2. CHECK LOCATION: Reject any result that is NOT in the requested city.
-    
-    3. SCORING RUBRIC (EVIDENCE-BASED):
-       - 95-100 (HIGH SAFETY): The search result mentions a "Dedicated Gluten Free Menu", "Dedicated Kitchen", OR explicitly lists "Gluten Free Food Options".
-       - 80-94 (MODERATE): Mentions "Gluten Friendly" items or modifications (e.g. "lettuce wrap available") but lacks a strong "Gluten Free" label.
-       - <80 (LOW): No clear safe options found.
-
-    4. EVIDENCE EXTRACTION: For every score, you MUST extract and quote the exact phrase from the search result that justifies the score.
-    5. Output strictly in the requested JSON format.
-    """
-)
-
-grocery_vetter = LlmAgent(
-    name="grocery_vetter",
-    model=FAST_MODEL,
-    description="Checks grocery items.",
-    instruction="""
-    You are a product analyst. 
-    1. Search for specific safe brands/products available in local stores.
-    
-    2. SCORING RUBRIC (EVIDENCE-BASED):
-       - 95-100: Package explicitly states "Certified Gluten Free" or "Certified Allergen Free".
-       - 85-94: Product listing claims "Gluten Free" or "No [Allergen]" ingredients (even if not certified).
-       - <85: May contain traces / Unsafe.
-
-    3. EVIDENCE EXTRACTION: Quote the label or ingredient claim found in the search text.
-    4. Output strictly in the requested JSON format.
-    """
-)
-
-auditor_agent = LlmAgent(
-    name="safety_auditor",
-    model=SMART_MODEL,
-    description="Evaluates the safety report.",
-    instruction="""
-    You are a Quality Assurance Auditor. 
-    Review the provided list of recommendations.
-    1. Assign an overall 'Safety Confidence Score' (0-100).
-    2. Write a short 'Headline' (e.g., "Safe to Eat", "High Risk", "Mixed Bag").
-    3. Provide 3-4 crisp bullet points summarizing why these are safe or risky.
-    Output strict JSON.
-    """
-)
-
-# MAIN ORCHESTRATOR
+# MAIN ORCHESTRATOR WITH CACHING
 def process_user_request(user_query, user_profile, location):
+    # Check cache first
+    cache_key = get_cache_key(user_query, user_profile, location)
+    cached_result = get_from_cache(cache_key)
+    
+    if cached_result:
+        # Return cached result to avoid API call
+        return cached_result
+    
+    # Default result structure
     results = {
         "intent": "",
         "recommendations": [], 
         "audit": {} 
     }
 
-    # Step 1: Route
-    intent = query_agent_with_runner(router_agent, f"Query: {user_query}").strip()
-    if "RESTAURANT" in intent.upper(): intent = "RESTAURANT"
-    elif "GROCERY" in intent.upper(): intent = "GROCERY"
-    results["intent"] = intent
-
-    # Step 2: Vet (UPDATED FOR 6 OPTIONS & STRICT LOCATION)
-    localized_prompt = f"""
+    # Single unified prompt that handles everything
+    unified_prompt = f"""
     User Query: {user_query}
     Target City/Location: {location}
     Search Constraint: STRICTLY WITHIN {location} ONLY.
     Dietary Profile: {user_profile}
     
     INSTRUCTIONS:
-    1. Search Phase: Identify roughly 10-15 potential candidates within the strictly defined city limits of {location}.
+    1. Determine if this is a RESTAURANT or GROCERY query.
+    
+    2. Search Phase: Identify 10-15 potential candidates within {location}.
        - Use search terms like "Best gluten free [food] {location}" or "Celiac friendly restaurants {location}".
        - Do NOT look in neighboring towns.
     
-    2. Ranking Phase: Evaluate candidates using the EVIDENCE-BASED Scoring Rubric.
-       - If they have a dedicated menu or explicit options, Score > 95.
-       - Extract quotes to prove it.
+    3. Ranking Phase: Evaluate candidates using the EVIDENCE-BASED Scoring Rubric.
+       - Extract quotes to prove each score.
     
-    3. Output Phase: Return 6 valid matches.
-       - **MANDATORY**: You MUST return 6 options if at least 6 valid places exist in the city.
-       - If you only find 3 "High Safety" (95%+) options, you MUST include "Moderate Safety" (80-94%) options to reach the count of 6.
-       - Only return fewer than 6 if strictly necessary (e.g., small town with absolutely no other options).
-       - For each, list specific 'safe_items' and the 'website_url'.
+    4. Output Phase: Return 6 valid matches.
+       - MANDATORY: Return 6 options if at least 6 valid places exist.
+       - Include "Moderate Safety" (80-94%) options if needed to reach 6.
+       - For each, list specific 'safe_items' and 'website_url'.
+    
+    5. Audit Phase: Review your recommendations and provide:
+       - Overall safety confidence score (0-100)
+       - Short headline verdict
+       - 3-4 bullet points explaining the assessment
+    
+    Return everything in the specified JSON format with 'intent', 'recommendations', and 'audit' fields.
     """
     
-    tools_to_use = [search_tool]
-    
-    if intent == "RESTAURANT":
-        raw_json = query_agent_with_runner(restaurant_vetter, localized_prompt, tools=tools_to_use, json_mode=True, schema=rec_schema)
-    else:
-        raw_json = query_agent_with_runner(grocery_vetter, localized_prompt, tools=tools_to_use, json_mode=True, schema=rec_schema)
-    
-    try:
-        results["recommendations"] = json.loads(raw_json)
-    except:
-        results["recommendations"] = []
-
-    # Step 3: Audit (STRUCTURED)
-    audit_json = query_agent_with_runner(
-        auditor_agent, 
-        f"Review this list for safety against profile '{user_profile}':\n{raw_json}",
-        json_mode=True,
-        schema=auditor_schema
+    # ONE API CALL instead of three
+    raw_json = query_agent_with_runner(
+        combined_agent, 
+        unified_prompt, 
+        tools=[search_tool], 
+        json_mode=True, 
+        schema=combined_schema
     )
-
+    
     try:
-        results["audit"] = json.loads(audit_json)
-    except:
-        results["audit"] = {
-            "overall_score": 0, 
-            "headline": "Audit Error", 
-            "summary_notes": ["System could not generate a safety audit."]
+        results = json.loads(raw_json)
+        # Ensure all required fields exist
+        if "intent" not in results:
+            results["intent"] = "RESTAURANT"
+        if "recommendations" not in results:
+            results["recommendations"] = []
+        if "audit" not in results:
+            results["audit"] = {
+                "overall_score": 0,
+                "headline": "Processing Error",
+                "summary_notes": ["Unable to generate safety audit."]
+            }
+    except Exception as e:
+        # Fallback for parsing errors
+        results = {
+            "intent": "RESTAURANT",
+            "recommendations": [],
+            "audit": {
+                "overall_score": 0,
+                "headline": "System Error",
+                "summary_notes": [f"Error processing request: {str(e)}"]
+            }
         }
-
+    
+    # Save to cache before returning
+    save_to_cache(cache_key, results)
+    
     return results
